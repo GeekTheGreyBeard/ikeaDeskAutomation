@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+dist/
+build/
+*.egg-info/
+.env
+.env.*
+config/local.yaml
+*.log
+
+# Local OpenClaw/operator state and runtime monitor output.
+.openclaw/
+runLogs/
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+
+# Calibration captures are local lab artifacts unless explicitly curated.
+calibration/

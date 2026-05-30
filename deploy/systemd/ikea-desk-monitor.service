@@ -1,0 +1,23 @@
+[Unit]
+Description=IKEA desk camera monitor
+Documentation=https://github.com/GeekTheGreyBeard/ikeaDeskAutomation
+After=bluetooth.service sound.target graphical-session.target
+Wants=bluetooth.service
+
+[Service]
+Type=simple
+Environment=IKEA_DESK_BIN=/usr/local/bin/ikea-desk
+Environment=IKEA_DESK_CONFIG=%h/.config/ikea-desk/config.yaml
+Environment=IKEA_DESK_MONITOR_ARGS=monitor
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-%h/.config/ikea-desk/service.env
+ExecStart=/bin/sh -lc 'exec "$IKEA_DESK_BIN" --config "$IKEA_DESK_CONFIG" $IKEA_DESK_MONITOR_ARGS'
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=15
+KillSignal=SIGINT
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

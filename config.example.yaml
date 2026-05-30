@@ -1,0 +1,55 @@
+# IKEA Desk Automation — example configuration
+# Copy to ~/.config/ikea-desk/config.yaml and edit for your setup.
+
+desk:
+  # BLE MAC address of your desk (required for real hardware).
+  address: "AA:BB:CC:DD:EE:FF"
+  name: "my-desk"
+  min_height_m: 0.620
+  max_height_m: 1.270
+
+presets:
+  sit:      0.730   # metres
+  stand:    1.125   # metres
+  away:     0.9275  # metres, halfway between sit and stand
+
+automation:
+  sustained_state_seconds: 10    # observe same state for this long before moving
+  cooldown_seconds:        45    # validated post-move cooldown in seconds
+  camera_required:         true  # refuse moves when camera is unavailable
+  min_confidence:          0.55  # ignore observations below this confidence
+  movement_timeout_seconds: 45
+  final_tolerance_m:        0.010
+  sample_interval_seconds:  2.0
+  motion_speed_threshold_ms: 0.005  # speed at/above this means the desk is moving
+  motion_height_delta_threshold_m: 0.003  # fallback per-sample height delta
+  motion_settle_seconds: 2.0        # pause automation briefly after movement stops
+
+audio:
+  enabled: true
+  volume_percent: 8
+
+camera:
+  enabled: true
+  # Optional RealSense serial. Leave blank to use the first connected device.
+  serial: ""
+  # Conservative USB2-friendly depth profile. Raise when a high-speed USB link is available.
+  width: 640
+  height: 480
+  fps: 15
+  warmup_frames: 5
+  sample_frames: 3
+  # Region of interest as normalized frame coordinates.
+  roi_left: 0.0
+  roi_top: 0.0
+  roi_right: 1.0
+  roi_bottom: 1.0
+  # Depth thresholds, in metres.
+  min_depth_m: 0.25
+  max_depth_m: 4.0
+  obstruction_distance_m: 0.35
+  min_foreground_ratio: 0.01
+  # Posture thresholds based on topmost foreground depth pixel in the ROI.
+  # Lower values are higher in the image.
+  standing_top_y: 0.35
+  min_confidence: 0.55

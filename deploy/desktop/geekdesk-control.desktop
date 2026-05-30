@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=GeekDesk Control
+Comment=Control the GeekDesk monitor service, settings, and local readouts
+Exec=geekdesk-control
+Terminal=false
+Categories=Utility;
+StartupNotify=true
