@@ -106,6 +106,8 @@ be checked into the repo without requiring hardware access.
 
 ![GeekDesk Control live dry-run overview](assets/screenshots/geekdesk-control-overview.png)
 
+![GeekDesk Control execute mode with manual controls locked](assets/screenshots/geekdesk-control-execute-locked.png)
+
 ![GeekDesk Control settings tab](assets/screenshots/geekdesk-control-settings.png)
 
 ![GeekDesk Control readout tab](assets/screenshots/geekdesk-control-readout.png)

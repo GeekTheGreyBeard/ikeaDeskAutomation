@@ -176,6 +176,15 @@ class ServiceSnapshot:
             return "Auto-start: unknown"
         return f"Auto-start: {self.unit_file_state}"
 
+    @property
+    def manual_controls_blocked_reason(self) -> str | None:
+        if self.is_running and not self.dry_run:
+            return (
+                "Manual desk controls are locked while Execute automation is running. "
+                "Turn automation Off first so the monitor releases the desk Bluetooth connection."
+            )
+        return None
+
 
 @dataclass(frozen=True)
 class AutomationHealth:
@@ -248,6 +257,19 @@ def assess_automation_health(
         if status.phase == PHASE_SAMPLING:
             state = status.last_state or "unknown"
             decision = status.last_decision or "evaluating"
+            if "manual override active" in (status.message or "").lower():
+                return AutomationHealth(
+                    live=False,
+                    stale=False,
+                    headline=(
+                        f"Automation paused ({running_mode}): manual override active; "
+                        f"sample {status.sample_count}, {state} - {decision}."
+                    ),
+                    detail=(
+                        f"Last heartbeat {age_text}. Clear Manual Override to resume "
+                        f"camera automation.{pending_restart}"
+                    ),
+                )
             return AutomationHealth(
                 live=not mode_mismatch and not pid_mismatch,
                 stale=mode_mismatch or pid_mismatch,
@@ -255,7 +277,15 @@ def assess_automation_health(
                     f"Monitor live ({running_mode}): sample {status.sample_count}, "
                     f"{state} - {decision}."
                 ),
-                detail=f"Last heartbeat {age_text}.{pending_restart}",
+                detail=(
+                    f"Last heartbeat {age_text}.{pending_restart}"
+                    if running_mode == "Dry-run"
+                    else (
+                        f"Last heartbeat {age_text}. Manual desk controls are locked "
+                        f"while the execute monitor owns the desk Bluetooth connection."
+                        f"{pending_restart}"
+                    )
+                ),
             )
         return AutomationHealth(
             live=False,
@@ -647,6 +677,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(snapshot.dry_run_label)
         print(f"Automation: {health.headline}")
         print(health.detail)
+        if snapshot.manual_controls_blocked_reason:
+            print(f"Manual controls: {snapshot.manual_controls_blocked_reason}")
         if snapshot.last_error:
             print(snapshot.last_error, file=sys.stderr)
             return 1
@@ -906,6 +938,15 @@ def run_gui(*, config_path: pathlib.Path = DEFAULT_CONFIG_PATH, fake: bool = Fal
 
         def _on_manual_clicked(self, mode: str) -> None:
             snapshot = self.service.snapshot()
+            if not snapshot.dry_run and snapshot.is_running:
+                message = (
+                    "Turn automation Off before using manual movement controls. "
+                    "The monitor service owns the desk Bluetooth connection while it is running."
+                )
+                self.manual_message_label.setText(message)
+                QMessageBox.warning(self, APP_NAME, message)
+                self.refresh(snapshot)
+                return
             for button in self.manual_mode_buttons.values():
                 button.setEnabled(False)
             try:
@@ -1003,9 +1044,13 @@ def run_gui(*, config_path: pathlib.Path = DEFAULT_CONFIG_PATH, fake: bool = Fal
             override = self.local.read_manual_override()
             self.manual_override_label.setText(override.label)
             self.clear_manual_button.setEnabled(override.active)
+            manual_blocked_reason = snapshot.manual_controls_blocked_reason
             for mode, button in self.manual_mode_buttons.items():
-                button.setEnabled(not override.active)
+                button.setEnabled(not override.active and manual_blocked_reason is None)
                 button.setChecked(override.active and override.mode == mode)
+                button.setToolTip(manual_blocked_reason or "")
+            if manual_blocked_reason:
+                self.manual_message_label.setText(manual_blocked_reason)
 
             details = [
                 f"Service: {snapshot.status_label}",
@@ -1024,6 +1069,8 @@ def run_gui(*, config_path: pathlib.Path = DEFAULT_CONFIG_PATH, fake: bool = Fal
                 details.append("Install the user service before using On.")
             if snapshot.dry_run and snapshot.is_running:
                 details.append("Turn automation Off before switching to Execute Mode.")
+            if manual_blocked_reason:
+                details.append(f"Manual controls: {manual_blocked_reason}")
             if snapshot.last_error:
                 details.append(snapshot.last_error)
             self.detail_label.setText("\n".join(details))

@@ -164,6 +164,8 @@ Or use the packaged desktop launcher:
 deploy/desktop/geekdesk-control.sh
 ```
 
+![GeekDesk Control showing execute-mode automation with manual controls locked](docs/assets/screenshots/geekdesk-control-execute-locked.png)
+
 GeekDesk Control is the primary local interface. It can:
 
 - Turn the monitor service On or Off and show auto-start/current-service state.

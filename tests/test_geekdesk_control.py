@@ -100,6 +100,25 @@ def test_service_snapshot_execute_button_explains_running_guard(tmp_path: pathli
     assert not snapshot.execute_button_enabled
 
 
+def test_service_snapshot_blocks_manual_controls_when_execute_monitor_runs(
+    tmp_path: pathlib.Path,
+) -> None:
+    snapshot = ServiceSnapshot(
+        active_state="active",
+        sub_state="running",
+        unit_file_state="enabled",
+        dry_run=False,
+        monitor_args="monitor --execute",
+        env_path=tmp_path / "service.env",
+        env_exists=True,
+        unit_path=tmp_path / "unit.service",
+        unit_exists=True,
+    )
+
+    assert snapshot.manual_controls_blocked_reason is not None
+    assert "Bluetooth connection" in snapshot.manual_controls_blocked_reason
+
+
 def test_enable_enables_and_starts_service(tmp_path: pathlib.Path) -> None:
     calls: list[list[str]] = []
 
@@ -335,6 +354,76 @@ def test_automation_health_reports_live_sampling(tmp_path: pathlib.Path) -> None
     assert health.live
     assert not health.stale
     assert "Monitor live (Dry-run): sample 7" in health.headline
+    assert "Manual desk controls" not in health.detail
+
+
+def test_automation_health_reports_manual_controls_locked_in_execute(
+    tmp_path: pathlib.Path,
+) -> None:
+    snapshot = ServiceSnapshot(
+        active_state="active",
+        sub_state="running",
+        unit_file_state="enabled",
+        dry_run=False,
+        monitor_args="monitor --execute",
+        env_path=tmp_path / "service.env",
+        env_exists=True,
+        unit_path=tmp_path / "unit.service",
+        unit_exists=True,
+        main_pid=1234,
+    )
+    status = MonitorStatus(
+        present=True,
+        pid=1234,
+        phase="sampling",
+        execute=True,
+        interval_seconds=2.0,
+        updated_at=100.0,
+        sample_count=7,
+        last_state="sitting",
+        last_decision="desk idle",
+    )
+
+    health = assess_automation_health(snapshot, status, now=105.0)
+
+    assert health.live
+    assert "Manual desk controls are locked" in health.detail
+
+
+def test_automation_health_reports_manual_override_as_paused(
+    tmp_path: pathlib.Path,
+) -> None:
+    snapshot = ServiceSnapshot(
+        active_state="active",
+        sub_state="running",
+        unit_file_state="enabled",
+        dry_run=False,
+        monitor_args="monitor --execute",
+        env_path=tmp_path / "service.env",
+        env_exists=True,
+        unit_path=tmp_path / "unit.service",
+        unit_exists=True,
+        main_pid=1234,
+    )
+    status = MonitorStatus(
+        present=True,
+        pid=1234,
+        phase="sampling",
+        execute=True,
+        interval_seconds=2.0,
+        updated_at=100.0,
+        sample_count=8,
+        last_state="sitting",
+        last_decision="camera automation skipped",
+        message="manual override active (stand)",
+    )
+
+    health = assess_automation_health(snapshot, status, now=101.0)
+
+    assert not health.live
+    assert not health.stale
+    assert "Automation paused (Execute): manual override active" in health.headline
+    assert "Clear Manual Override" in health.detail
 
 
 def test_automation_health_reports_pending_restart_on_execute_divergence(
