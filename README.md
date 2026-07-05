@@ -283,3 +283,7 @@ ruff check .
 ## License
 
 MIT
+
+## Internal Documentation
+
+Obsidian documentation: `OpenClaw/Projects/ikeaDeskAutomation/`
