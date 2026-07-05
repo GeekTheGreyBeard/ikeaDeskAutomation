@@ -285,5 +285,3 @@ ruff check .
 MIT
 
 ## Internal Documentation
-
-Obsidian documentation: `OpenClaw/Projects/ikeaDeskAutomation/`
