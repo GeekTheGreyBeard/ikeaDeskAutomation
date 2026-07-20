@@ -749,12 +749,6 @@ async def cmd_monitor(
                     current_m = await client.get_height()
                     if abs(current_m - target_m) <= config.automation.final_tolerance_m:
                         print(f"already near {target_name} ({current_m:.3f} m)")
-                        automation.record_move(
-                            timestamp=observation.timestamp,
-                            state=decision.target_state,
-                            requires_confirmation=False,
-                        )
-                        target_action_accepted = True
                     elif not execute:
                         print(
                             f"dry-run: would move to {target_name} "

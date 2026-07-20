@@ -451,6 +451,52 @@ def test_cmd_monitor_moves_away_then_back_to_sitting(capsys: pytest.CaptureFixtu
     assert "moving to sit" in out
 
 
+def test_cmd_monitor_already_near_does_not_start_false_cooldown(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cfg = AppConfig(
+        automation=AutomationConfig(
+            sustained_state_seconds=10.0,
+            cooldown_seconds=60.0,
+            min_confidence=0.5,
+            camera_required=True,
+            sample_interval_seconds=0.001,
+        )
+    )
+    samples = iter(
+        [
+            (DepthMetrics(available=True), Observation(OccupancyState.SITTING, 0.9, timestamp=1.0)),
+            (DepthMetrics(available=True), Observation(OccupancyState.SITTING, 0.9, timestamp=12.0)),
+            (DepthMetrics(available=True), Observation(OccupancyState.STANDING, 0.9, timestamp=13.0)),
+            (DepthMetrics(available=True), Observation(OccupancyState.STANDING, 0.9, timestamp=24.0)),
+        ]
+    )
+    client = FakeDeskClient(initial_height_m=cfg.presets.sit)
+
+    async def _inner() -> tuple[int, float]:
+        rc = await cmd_monitor(
+            client,
+            cfg,
+            execute=True,
+            sample_interval_seconds=0.001,
+            max_samples=4,
+            rng=random.Random(2),
+            observation_sampler=lambda: next(samples),
+        )
+        await client.connect()
+        height = await client.get_height()
+        await client.disconnect()
+        return rc, height
+
+    rc, height = _run(_inner())
+    assert rc == 0
+    assert height == pytest.approx(cfg.presets.stand)
+    out = capsys.readouterr().out
+    assert "already near sit" in out
+    assert "moving to stand" in out
+    assert "cooldown active" not in out
+
+
 def test_cmd_monitor_can_stop_after_first_move(capsys: pytest.CaptureFixture[str]) -> None:
     cfg = AppConfig(
         automation=AutomationConfig(
